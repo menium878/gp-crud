@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
 
@@ -14,7 +14,7 @@ type Movie struct {
 	Id       int       `json:"id"`
 	Name     string    `json:"name"`
 	Rating   int       `json:"title"`
-	Director *Director `json:"director`
+	Director *Director `json:"director"`
 }
 
 type Director struct {
@@ -45,7 +45,7 @@ func deleteMovie(w http.ResponseWriter, r *http.Request) {
 	for index, item := range movies {
 
 		if strconv.Itoa(item.Id) == params["id"] {
-			movies = append(movies[:index], movies[index+1:]...) //przydatna składnia
+			movies = append(movies[:index], movies[index+1:]...) //usfull append trick
 			break
 		}
 	}
@@ -60,14 +60,46 @@ func getMovie(w http.ResponseWriter, r *http.Request) {
 
 		if strconv.Itoa(item.Id) == params["id"] {
 			json.NewEncoder(w).Encode(item)
-			break
+			return
 		}
 	}
 }
 
+func createMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	var movie Movie
+	_ = json.NewDecoder(r.Body).Decode(&movie)
+	movie.Id = (rand.Intn(1000000000))
+	movies = append(movies, movie)
+	json.NewEncoder(w).Encode(movie)
+
+}
+
+func updateMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	var movie Movie
+	params := mux.Vars(r)
+	for index, item := range movies {
+
+		if strconv.Itoa(item.Id) == params["id"] {
+			movies = append(movies[:index], movies[index+1:]...)
+			movie.Id = index
+			break
+		}
+
+	}
+	_ = json.NewDecoder(r.Body).Decode(&movie)
+	movies = append(movies, movie)
+	json.NewEncoder(w).Encode(movie)
+}
+
+func notFound(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("Not found")
+}
 func main() {
 	r := mux.NewRouter()
-
+	// diffrence in syntax need to add this
+	r.NotFoundHandler = http.HandlerFunc(notFound)
 	movies = append(movies, Movie{Id: 1, Name: "LOTR", Rating: 10, Director: &Director{FirstName: "John", LastName: "COO"}})
 	movies = append(movies, Movie{Id: 2, Name: "Test2", Rating: 6, Director: &Director{FirstName: "Sebastian", LastName: "Co"}})
 	movies = append(movies, Movie{Id: 3, Name: "Test3", Rating: 3, Director: &Director{FirstName: "John", LastName: "COO"}})
@@ -77,6 +109,7 @@ func main() {
 	r.HandleFunc("movie/update/{Id}", updateMovie).Methods("PUT")    //UPDATE updateMovie
 	r.HandleFunc("movie/delete/{Id}", deleteMovie).Methods("DELETE") //DELETE deleteMovie
 
-	fmt.Printf("Starting server at port 8000\n")
-	log.Fatal(http.ListenAndServe(":8000", r))
+	fmt.Printf("Starting server at port 8080\n")
+	http.Handle("/", r)
+	fmt.Println(http.ListenAndServe(":8080", r))
 }

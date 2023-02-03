@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -15,7 +14,7 @@ type Movie struct {
 	Id       int       `json:"id"`
 	Name     string    `json:"name"`
 	Rating   int       `json:"title"`
-	Director *Director `json:"director`
+	Director *Director `json:"director"`
 }
 
 type Director struct {
@@ -61,7 +60,7 @@ func getMovie(w http.ResponseWriter, r *http.Request) {
 
 		if strconv.Itoa(item.Id) == params["id"] {
 			json.NewEncoder(w).Encode(item)
-			break
+			return
 		}
 	}
 }
@@ -94,9 +93,13 @@ func updateMovie(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(movie)
 }
 
+func notFound(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("Not found")
+}
 func main() {
 	r := mux.NewRouter()
-
+	// diffrence in syntax need to add this
+	r.NotFoundHandler = http.HandlerFunc(notFound)
 	movies = append(movies, Movie{Id: 1, Name: "LOTR", Rating: 10, Director: &Director{FirstName: "John", LastName: "COO"}})
 	movies = append(movies, Movie{Id: 2, Name: "Test2", Rating: 6, Director: &Director{FirstName: "Sebastian", LastName: "Co"}})
 	movies = append(movies, Movie{Id: 3, Name: "Test3", Rating: 3, Director: &Director{FirstName: "John", LastName: "COO"}})
@@ -106,6 +109,7 @@ func main() {
 	r.HandleFunc("movie/update/{Id}", updateMovie).Methods("PUT")    //UPDATE updateMovie
 	r.HandleFunc("movie/delete/{Id}", deleteMovie).Methods("DELETE") //DELETE deleteMovie
 
-	fmt.Printf("Starting server at port 8000\n")
-	log.Fatal(http.ListenAndServe(":8000", r))
+	fmt.Printf("Starting server at port 8080\n")
+	http.Handle("/", r)
+	fmt.Println(http.ListenAndServe(":8080", r))
 }
